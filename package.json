@@ -8,6 +8,9 @@
     "type": "git",
     "url": "https://github.com/obra/streamlinear.git"
   },
+  "bin": {
+    "streamlinear": "mcp/dist/index.js"
+  },
   "scripts": {
     "build": "cd mcp && npm install && npm run build",
     "start": "node mcp/dist/index.js",
