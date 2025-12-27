@@ -163,14 +163,14 @@ async function handleSearch(query?: string | Record<string, unknown>): Promise<s
   } else if (typeof query === "string") {
     // Text search
     const data = await graphql(`
-      query($query: String!) {
-        searchIssues(query: $query, first: 20) {
+      query($term: String!) {
+        searchIssues(term: $term, first: 20) {
           nodes {
             id identifier title state { name } priority assignee { name } dueDate
           }
         }
       }
-    `, { query }) as { searchIssues: { nodes: Array<Record<string, unknown>> } };
+    `, { term: query }) as { searchIssues: { nodes: Array<Record<string, unknown>> } };
 
     return formatIssueList(data.searchIssues.nodes);
   } else {
