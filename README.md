@@ -36,27 +36,14 @@ Instead of 23 separate tools, streamlinear has **one tool with action dispatch**
 
 ## Installation
 
-### As Claude Code Plugin
-
-```bash
-claude plugin add obra/streamlinear
-```
-
-Then set your Linear API token:
-```bash
-claude config set LINEAR_API_TOKEN lin_api_xxxxx
-```
-
-### Manual Setup
-
 Add to your `.mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "linear": {
-      "command": "node",
-      "args": ["/path/to/streamlinear/mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "github:obra/streamlinear"],
       "env": {
         "LINEAR_API_TOKEN": "lin_api_xxxxx"
       }
