@@ -1,7 +1,7 @@
 {
   "name": "streamlinear-mcp",
   "version": "1.0.0",
-  "description": "MCP server for streamlinear",
+  "description": "A lightweight MCP server for Linear",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
