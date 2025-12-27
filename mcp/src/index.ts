@@ -470,12 +470,16 @@ async function buildToolDescription(): Promise<string> {
 
   const teamLines = teams.map((team) => {
     const states = (team.states as { nodes: Array<Record<string, unknown>> }).nodes;
-    const stateNames = states.map((s) => s.name as string).join(", ");
-    return `${team.key} states: ${stateNames}`;
+    const stateNames = states.map((s) => {
+      const name = s.name as string;
+      return name.includes(",") ? `"${name}"` : name;
+    }).join(", ");
+    return `  ${team.key}: ${stateNames}`;
   });
 
   return `Linear issues. Actions: help, search, get, update, comment, create, graphql
 
+Teams:
 ${teamLines.join("\n")}
 
 {"action": "search"} → your active issues
