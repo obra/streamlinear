@@ -413,10 +413,8 @@ async function handleMe(): Promise<string> {
   const teams = await getTeams();
 
   const lines = [
-    `## You`,
     `**${viewer.name}** (${viewer.email})`,
     ``,
-    `## Teams & States`,
   ];
 
   for (const team of teams) {
@@ -424,10 +422,6 @@ async function handleMe(): Promise<string> {
     const stateNames = states.map((s) => s.name as string).join(", ");
     lines.push(`**${team.key}** (${team.name}): ${stateNames}`);
   }
-
-  lines.push(``, `## Priority Levels`, `0=None, 1=Urgent, 2=High, 3=Medium, 4=Low`);
-  lines.push(``, `## Search Defaults`, `Without query: your assigned issues, excluding completed/canceled`);
-  lines.push(``, `## Query Filters`, `{assignee: "me"|email, state: "name", priority: 0-4, team: "KEY"}`);
 
   return lines.join("\n");
 }
@@ -437,7 +431,7 @@ function handleHelp(): string {
 
 ## Actions
 
-**me** - Show your info, teams, workflow states, and query syntax
+**me** - Your info, teams, and workflow states
   {"action": "me"}
 
 **search** - Find issues
@@ -457,21 +451,24 @@ function handleHelp(): string {
 **comment** - Add comment to issue
   {"action": "comment", "id": "ABC-123", "body": "Fixed in abc123"}
 
-**create** - Create new issue (use "me" action to find team keys)
+**create** - Create new issue
   {"action": "create", "title": "Bug title", "team": "ENG"}
   {"action": "create", "title": "Bug", "team": "ENG", "body": "Details", "priority": 2}
 
 **graphql** - Raw GraphQL for anything else
   {"action": "graphql", "graphql": "query { projects { nodes { id name } } }"}
 
-## Smart Features
-- State names fuzzy match: "done" → "Done", "in prog" → "In Progress"
-- IDs accept: ABC-123, linear.app URLs, or UUIDs
-- "me" as assignee uses authenticated user
-- Search defaults: your issues, not completed/canceled
+## Reference
 
-## Query Object Keys
-{assignee: "me"|"email@...", state: "name", priority: 0-4, team: "KEY"}`;
+Priority: 0=None, 1=Urgent, 2=High, 3=Medium, 4=Low
+
+Query filters: {assignee: "me"|email, state: "name", priority: 0-4, team: "KEY"}
+
+Search default: your issues, excluding completed/canceled
+
+State matching is fuzzy: "done" → "Done", "in prog" → "In Progress"
+
+IDs accept: ABC-123, linear.app URLs, or UUIDs`;
 }
 
 // Tool parameter schema
