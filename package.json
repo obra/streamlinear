@@ -1,0 +1,21 @@
+{
+  "name": "streamlinear",
+  "version": "1.0.0",
+  "description": "Streamlined Linear integration - one tool, six actions, zero bloat",
+  "author": "Jesse Vincent <jesse@fsck.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/obra/streamlinear.git"
+  },
+  "scripts": {
+    "build": "cd mcp && npm install && npm run build",
+    "start": "node mcp/dist/index.js"
+  },
+  "keywords": [
+    "linear",
+    "mcp",
+    "claude-code",
+    "model-context-protocol"
+  ]
+}

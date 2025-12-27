@@ -1,0 +1,19 @@
+{
+  "name": "streamlinear",
+  "version": "1.0.0",
+  "description": "Streamlined Linear integration - one tool, six actions, zero bloat",
+  "author": {
+    "name": "Jesse Vincent",
+    "email": "jesse@fsck.com"
+  },
+  "repository": "https://github.com/obra/streamlinear",
+  "mcpServers": {
+    "linear": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/dist/index.js"],
+      "env": {
+        "LINEAR_API_TOKEN": "${LINEAR_API_TOKEN}"
+      }
+    }
+  }
+}
