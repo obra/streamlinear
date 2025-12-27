@@ -412,13 +412,15 @@ const server = new McpServer({
 // Register single tool
 server.tool(
   "linear",
-  `Work with Linear issues. Actions:
-- search: Find issues (query: string or {assignee, state, priority, team})
-- get: Get issue details (id: ABC-123 or URL)
-- update: Update issue (id, state?, priority?, assignee?)
-- comment: Add comment (id, body)
-- create: Create issue (title, team, body?, priority?)
-- graphql: Raw GraphQL query (graphql, variables?)`,
+  `Work with Linear issues. Use /skill streamlinear:linear for detailed patterns and examples.
+
+Actions: search, get, update, comment, create, graphql
+
+Quick examples:
+- {"action": "search"} → your active issues
+- {"action": "get", "id": "ABC-123"} → issue details
+- {"action": "update", "id": "ABC-123", "state": "Done"}
+- {"action": "graphql", "graphql": "query { viewer { name } }"}`,
   LinearParams.shape,
   async (args) => {
     const params = LinearParams.parse(args);
