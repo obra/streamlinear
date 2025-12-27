@@ -1,7 +1,7 @@
 {
   "name": "streamlinear",
   "version": "1.0.0",
-  "description": "Streamlined Linear integration - one tool, six actions, zero bloat",
+  "description": "A lightweight Linear MCP for Claude Code",
   "author": "Jesse Vincent <jesse@fsck.com>",
   "license": "MIT",
   "repository": {
@@ -10,7 +10,14 @@
   },
   "scripts": {
     "build": "cd mcp && npm install && npm run build",
-    "start": "node mcp/dist/index.js"
+    "start": "node mcp/dist/index.js",
+    "prepare": "simple-git-hooks"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npm run build && git add mcp/dist/index.js"
+  },
+  "devDependencies": {
+    "simple-git-hooks": "^2.11.1"
   },
   "keywords": [
     "linear",
