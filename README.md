@@ -1,18 +1,20 @@
 # streamlinear
 
-Streamlined Linear integration for Claude Code. One tool, six actions, zero bloat.
+Streamlined Linear integration for Claude Code. One tool, eight actions, zero bloat.
 
 ## Why?
 
 The standard Linear MCP uses **~17,000 tokens** just for tool definitions. That's 8% of your context window before it does anything.
 
-streamlinear uses **~400 tokens**. Same functionality, 42x lighter.
+streamlinear uses **~500 tokens**. Same functionality, 34x lighter.
 
 ## Design Philosophy
 
 Instead of 23 separate tools, streamlinear has **one tool with action dispatch**:
 
 ```json
+{"action": "me"}
+{"action": "help"}
 {"action": "search"}
 {"action": "get", "id": "ABC-123"}
 {"action": "update", "id": "ABC-123", "state": "Done"}
@@ -21,12 +23,12 @@ Instead of 23 separate tools, streamlinear has **one tool with action dispatch**
 {"action": "graphql", "graphql": "query { viewer { name } }"}
 ```
 
-Plus a **skill** that teaches Claude when and how to use each action.
-
 ## Actions
 
 | Action | Purpose |
 |--------|---------|
+| `me` | Show your info, teams, and valid workflow states |
+| `help` | Full documentation for all actions |
 | `search` | Find issues (smart defaults: your active issues) |
 | `get` | Issue details by ABC-123, URL, or UUID |
 | `update` | Change state, priority, assignee |
@@ -71,10 +73,11 @@ Add to your `.mcp.json`:
 - IDs accept ABC-123, Linear URLs, or UUIDs
 - State names are fuzzy matched ("done" → "Done", "in prog" → "In Progress")
 - `assignee: "me"` uses the authenticated user
+- Error messages show valid options (states, teams)
 
 ## The GraphQL Escape Valve
 
-For anything not covered by the 5 main actions, use raw GraphQL:
+For anything not covered by the main actions, use raw GraphQL:
 
 ```json
 {
@@ -83,7 +86,7 @@ For anything not covered by the 5 main actions, use raw GraphQL:
 }
 ```
 
-See `skills/linear/SKILL.md` for common patterns.
+Use `{"action": "help"}` for common GraphQL patterns.
 
 ## License
 

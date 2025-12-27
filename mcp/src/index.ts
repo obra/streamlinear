@@ -279,7 +279,15 @@ async function handleUpdate(
     if (stateId) {
       input.stateId = stateId;
     } else {
-      return `Could not find state matching "${updates.state}"`;
+      // Get valid states for this team
+      const teams = await getTeams();
+      const team = teams.find((t) => t.id === issueData.issue.team.id);
+      const validStates = team
+        ? (team.states as { nodes: Array<Record<string, unknown>> }).nodes
+            .map((s) => s.name as string)
+            .join(", ")
+        : "unknown";
+      return `State "${updates.state}" not found. Valid states: ${validStates}`;
     }
   }
 
@@ -314,16 +322,24 @@ async function handleUpdate(
     return "No updates provided";
   }
 
-  await graphql(`
+  const updateResult = await graphql(`
     mutation($id: String!, $input: IssueUpdateInput!) {
       issueUpdate(id: $id, input: $input) {
         success
         issue { identifier title state { name } priority assignee { name } }
       }
     }
-  `, { id: issueData.issue.id, input });
+  `, { id: issueData.issue.id, input }) as { issueUpdate: { issue: Record<string, unknown> } };
 
-  return `Updated ${resolved}`;
+  const issue = updateResult.issueUpdate.issue;
+  const changes: string[] = [];
+  if (updates.state) changes.push(`state → ${(issue.state as Record<string, unknown>)?.name}`);
+  if (updates.priority !== undefined) changes.push(`priority → ${priorityName(issue.priority as number)}`);
+  if (updates.assignee !== undefined) {
+    changes.push(`assignee → ${(issue.assignee as Record<string, unknown>)?.name || "Unassigned"}`);
+  }
+
+  return `Updated ${issue.identifier}: ${changes.join(", ")}`;
 }
 
 async function handleComment(id: string, body: string): Promise<string> {
@@ -348,7 +364,8 @@ async function handleComment(id: string, body: string): Promise<string> {
     }
   `, { issueId: issueData.issue.id, body });
 
-  return `Added comment to ${issueData.issue.identifier}`;
+  const truncated = body.length > 100 ? body.slice(0, 100) + "..." : body;
+  return `Added comment to ${issueData.issue.identifier}:\n> ${truncated}`;
 }
 
 async function handleCreate(
@@ -358,7 +375,9 @@ async function handleCreate(
 ): Promise<string> {
   const teamData = await resolveTeam(team);
   if (!teamData) {
-    return `Team "${team}" not found`;
+    const teams = await getTeams();
+    const validTeams = teams.map((t) => `${t.key} (${t.name})`).join(", ");
+    return `Team "${team}" not found. Available: ${validTeams}`;
   }
 
   const input: Record<string, unknown> = {
@@ -387,9 +406,77 @@ async function handleGraphql(query: string, variables?: Record<string, unknown>)
   return JSON.stringify(data, null, 2);
 }
 
+// New handlers for discoverability
+
+async function handleMe(): Promise<string> {
+  const viewer = await getViewer();
+  const teams = await getTeams();
+
+  const lines = [
+    `## You`,
+    `**${viewer.name}** (${viewer.email})`,
+    ``,
+    `## Teams & States`,
+  ];
+
+  for (const team of teams) {
+    const states = (team.states as { nodes: Array<Record<string, unknown>> }).nodes;
+    const stateNames = states.map((s) => s.name as string).join(", ");
+    lines.push(`**${team.key}** (${team.name}): ${stateNames}`);
+  }
+
+  lines.push(``, `## Priority Levels`, `0=None, 1=Urgent, 2=High, 3=Medium, 4=Low`);
+  lines.push(``, `## Search Defaults`, `Without query: your assigned issues, excluding completed/canceled`);
+  lines.push(``, `## Query Filters`, `{assignee: "me"|email, state: "name", priority: 0-4, team: "KEY"}`);
+
+  return lines.join("\n");
+}
+
+function handleHelp(): string {
+  return `# Linear MCP
+
+## Actions
+
+**me** - Show your info, teams, workflow states, and query syntax
+  {"action": "me"}
+
+**search** - Find issues
+  {"action": "search"}                           → your active issues
+  {"action": "search", "query": "auth bug"}      → text search
+  {"action": "search", "query": {"state": "In Progress", "assignee": "me"}}
+
+**get** - Issue details (accepts ABC-123, URLs, or UUIDs)
+  {"action": "get", "id": "ABC-123"}
+
+**update** - Change state, priority, assignee
+  {"action": "update", "id": "ABC-123", "state": "Done"}
+  {"action": "update", "id": "ABC-123", "priority": 1}
+  {"action": "update", "id": "ABC-123", "assignee": "me"}
+  {"action": "update", "id": "ABC-123", "assignee": null}  → unassign
+
+**comment** - Add comment to issue
+  {"action": "comment", "id": "ABC-123", "body": "Fixed in abc123"}
+
+**create** - Create new issue (use "me" action to find team keys)
+  {"action": "create", "title": "Bug title", "team": "ENG"}
+  {"action": "create", "title": "Bug", "team": "ENG", "body": "Details", "priority": 2}
+
+**graphql** - Raw GraphQL for anything else
+  {"action": "graphql", "graphql": "query { projects { nodes { id name } } }"}
+
+## Smart Features
+- State names fuzzy match: "done" → "Done", "in prog" → "In Progress"
+- IDs accept: ABC-123, linear.app URLs, or UUIDs
+- "me" as assignee uses authenticated user
+- Search defaults: your issues, not completed/canceled
+
+## Query Object Keys
+{assignee: "me"|"email@...", state: "name", priority: 0-4, team: "KEY"}`;
+}
+
 // Tool parameter schema
 const LinearParams = z.object({
-  action: z.enum(["search", "get", "update", "comment", "create", "graphql"]),
+  action: z.enum(["search", "get", "update", "comment", "create", "graphql", "me", "help"]),
   query: z.union([z.string(), z.record(z.unknown())]).optional(),
   id: z.string().optional(),
   state: z.string().optional(),
@@ -412,15 +499,15 @@ const server = new McpServer({
 // Register single tool
 server.tool(
   "linear",
-  `Work with Linear issues. Use /skill streamlinear:linear for detailed patterns and examples.
+  `Linear issues. Actions: me, help, search, get, update, comment, create, graphql
 
-Actions: search, get, update, comment, create, graphql
-
-Quick examples:
-- {"action": "search"} → your active issues
-- {"action": "get", "id": "ABC-123"} → issue details
-- {"action": "update", "id": "ABC-123", "state": "Done"}
-- {"action": "graphql", "graphql": "query { viewer { name } }"}`,
+{"action": "me"} → your info, teams, valid states
+{"action": "help"} → full documentation
+{"action": "search"} → your active issues (assigned to you, not completed/canceled)
+{"action": "search", "query": "text"} → text search
+{"action": "get", "id": "ABC-123"} → issue details
+{"action": "update", "id": "ABC-123", "state": "Done"}
+{"action": "create", "title": "Title", "team": "KEY"}`,
   LinearParams.shape,
   async (args) => {
     const params = LinearParams.parse(args);
@@ -467,6 +554,14 @@ Quick examples:
         case "graphql":
           if (!params.graphql) throw new Error("graphql query is required for graphql action");
           result = await handleGraphql(params.graphql, params.variables);
+          break;
+
+        case "me":
+          result = await handleMe();
+          break;
+
+        case "help":
+          result = handleHelp();
           break;
 
         default:
