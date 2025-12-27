@@ -406,33 +406,10 @@ async function handleGraphql(query: string, variables?: Record<string, unknown>)
   return JSON.stringify(data, null, 2);
 }
 
-// New handlers for discoverability
-
-async function handleMe(): Promise<string> {
-  const viewer = await getViewer();
-  const teams = await getTeams();
-
-  const lines = [
-    `**${viewer.name}** (${viewer.email})`,
-    ``,
-  ];
-
-  for (const team of teams) {
-    const states = (team.states as { nodes: Array<Record<string, unknown>> }).nodes;
-    const stateNames = states.map((s) => s.name as string).join(", ");
-    lines.push(`**${team.key}** (${team.name}): ${stateNames}`);
-  }
-
-  return lines.join("\n");
-}
-
 function handleHelp(): string {
   return `# Linear MCP
 
 ## Actions
-
-**me** - Your info, teams, and workflow states
-  {"action": "me"}
 
 **search** - Find issues
   {"action": "search"}                           → your active issues
@@ -473,7 +450,7 @@ IDs accept: ABC-123, linear.app URLs, or UUIDs`;
 
 // Tool parameter schema
 const LinearParams = z.object({
-  action: z.enum(["search", "get", "update", "comment", "create", "graphql", "me", "help"]),
+  action: z.enum(["search", "get", "update", "comment", "create", "graphql", "help"]),
   query: z.union([z.string(), z.record(z.unknown())]).optional(),
   id: z.string().optional(),
   state: z.string().optional(),
@@ -487,24 +464,41 @@ const LinearParams = z.object({
   variables: z.record(z.unknown()).optional(),
 });
 
+// Build dynamic tool description with teams/states
+async function buildToolDescription(): Promise<string> {
+  const teams = await getTeams();
+
+  const teamLines = teams.map((team) => {
+    const states = (team.states as { nodes: Array<Record<string, unknown>> }).nodes;
+    const stateNames = states.map((s) => s.name as string).join(", ");
+    return `${team.key} states: ${stateNames}`;
+  });
+
+  return `Linear issues. Actions: help, search, get, update, comment, create, graphql
+
+${teamLines.join("\n")}
+
+{"action": "search"} → your active issues
+{"action": "search", "query": "text"} → text search
+{"action": "get", "id": "ABC-123"} → issue details
+{"action": "update", "id": "ABC-123", "state": "Done"}
+{"action": "create", "title": "Title", "team": "${teams[0]?.key || 'KEY'}"}
+{"action": "help"} → full documentation`;
+}
+
 // Create MCP server
 const server = new McpServer({
   name: "linear",
   version: "1.0.0",
 });
 
+// Fetch teams/states at startup, then register tool
+const toolDescription = await buildToolDescription();
+
 // Register single tool
 server.tool(
   "linear",
-  `Linear issues. Actions: me, help, search, get, update, comment, create, graphql
-
-{"action": "me"} → your info, teams, valid states
-{"action": "help"} → full documentation
-{"action": "search"} → your active issues (assigned to you, not completed/canceled)
-{"action": "search", "query": "text"} → text search
-{"action": "get", "id": "ABC-123"} → issue details
-{"action": "update", "id": "ABC-123", "state": "Done"}
-{"action": "create", "title": "Title", "team": "KEY"}`,
+  toolDescription,
   LinearParams.shape,
   async (args) => {
     const params = LinearParams.parse(args);
@@ -551,10 +545,6 @@ server.tool(
         case "graphql":
           if (!params.graphql) throw new Error("graphql query is required for graphql action");
           result = await handleGraphql(params.graphql, params.variables);
-          break;
-
-        case "me":
-          result = await handleMe();
           break;
 
         case "help":
