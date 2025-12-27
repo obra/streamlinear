@@ -479,7 +479,7 @@ async function buildToolDescription(): Promise<string> {
 
   return `Linear issues. Actions: help, search, get, update, comment, create, graphql
 
-Teams:
+Teams (workflow states):
 ${teamLines.join("\n")}
 
 {"action": "search"} → your active issues
