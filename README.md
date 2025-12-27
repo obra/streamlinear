@@ -1,12 +1,12 @@
 # streamlinear
 
-Streamlined Linear integration for Claude Code. One tool, eight actions, zero bloat.
+A lightweight Linear MCP for Claude Code. One tool, eight actions.
 
 ## Why?
 
-The standard Linear MCP uses **~17,000 tokens** just for tool definitions. That's 8% of your context window before it does anything.
+The standard Linear MCP uses ~17,000 tokens for tool definitions.
 
-streamlinear uses **~500 tokens**. Same functionality, 34x lighter.
+streamlinear uses ~500 tokens.
 
 ## Design Philosophy
 
