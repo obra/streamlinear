@@ -2,9 +2,17 @@ import { z } from "zod";
 
 const LINEAR_API = "https://api.linear.app/graphql";
 
-// Get API token - exported for validation
+// API token - can be set programmatically or from env
+let apiToken: string | undefined = process.env.LINEAR_API_TOKEN;
+
+// Get API token
 export function getApiToken(): string | undefined {
-  return process.env.LINEAR_API_TOKEN;
+  return apiToken;
+}
+
+// Set API token programmatically
+export function setApiToken(token: string): void {
+  apiToken = token;
 }
 
 // GraphQL helper

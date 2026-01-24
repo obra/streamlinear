@@ -1,5 +1,6 @@
+import { execSync } from "child_process";
 import {
-  getApiToken,
+  setApiToken,
   handleSearch,
   handleGet,
   handleUpdate,
@@ -14,7 +15,7 @@ function printHelp(): void {
   console.log(`streamlinear-cli - Linear issue management from the command line
 
 USAGE:
-  streamlinear-cli <command> [options]
+  streamlinear-cli [auth options] <command> [options]
 
 COMMANDS:
   search [query]           Search issues (default: your active issues)
@@ -25,6 +26,11 @@ COMMANDS:
   graphql <query>          Execute raw GraphQL
   teams                    List available teams and states
   help                     Show this help
+
+AUTHENTICATION (in order of precedence):
+  --token <token>          Use this API token directly
+  --token-cmd <command>    Run command to get token (stdout, trimmed)
+  LINEAR_API_TOKEN         Environment variable fallback
 
 SEARCH OPTIONS:
   --state <name>           Filter by state (e.g., "In Progress")
@@ -46,24 +52,22 @@ CREATE OPTIONS:
 EXAMPLES:
   streamlinear-cli search                          # Your active issues
   streamlinear-cli search "auth bug"               # Text search
-  streamlinear-cli search --state "In Progress"   # Filter by state
+  streamlinear-cli --token abc123 search           # With explicit token
+  streamlinear-cli --token-cmd "op read 'op://vault/linear/token'" search
   streamlinear-cli get ABC-123                     # Get issue details
   streamlinear-cli update ABC-123 --state Done     # Mark as done
   streamlinear-cli comment ABC-123 "Fixed it"      # Add comment
   streamlinear-cli create --team ENG --title "Bug" # Create issue
-
-ENVIRONMENT:
-  LINEAR_API_TOKEN         Required. Your Linear API token.
 `);
 }
 
 // Parse command line arguments
 function parseArgs(args: string[]): { command: string; positional: string[]; flags: Record<string, string | null> } {
-  const command = args[0] || "help";
   const positional: string[] = [];
   const flags: Record<string, string | null> = {};
+  let command: string | null = null;
 
-  for (let i = 1; i < args.length; i++) {
+  for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg.startsWith("--")) {
       const key = arg.slice(2);
@@ -74,12 +78,41 @@ function parseArgs(args: string[]): { command: string; positional: string[]; fla
       } else {
         flags[key] = null;
       }
+    } else if (!command) {
+      // First non-flag argument is the command
+      command = arg;
     } else {
       positional.push(arg);
     }
   }
 
-  return { command, positional, flags };
+  return { command: command || "help", positional, flags };
+}
+
+// Resolve API token from various sources
+function resolveToken(flags: Record<string, string | null>): string | null {
+  // 1. Direct token flag
+  if (flags.token) {
+    return flags.token;
+  }
+
+  // 2. Token command
+  if (flags["token-cmd"]) {
+    try {
+      const result = execSync(flags["token-cmd"], {
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+      return result.trim();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error running token command: ${message}`);
+      process.exit(1);
+    }
+  }
+
+  // 3. Environment variable
+  return process.env.LINEAR_API_TOKEN || null;
 }
 
 // Main CLI entry point
@@ -93,11 +126,13 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Check for API token for all other commands
-  if (!getApiToken()) {
-    console.error("Error: LINEAR_API_TOKEN environment variable is required");
+  // Resolve and set API token
+  const token = resolveToken(flags);
+  if (!token) {
+    console.error("Error: No API token provided. Use --token, --token-cmd, or set LINEAR_API_TOKEN");
     process.exit(1);
   }
+  setApiToken(token);
 
   try {
     let result: string;

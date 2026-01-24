@@ -108,6 +108,18 @@ streamlinear-cli graphql "query { projects { nodes { id name } } }"
 | 3 | Medium |
 | 4 | Low |
 
-## Environment
+## Authentication
 
-Requires `LINEAR_API_TOKEN` environment variable.
+Token can be provided in order of precedence:
+
+```bash
+# Direct token
+streamlinear-cli --token lin_api_xxx search
+
+# Token from command (e.g., 1Password, AWS Secrets Manager)
+streamlinear-cli --token-cmd "op read 'op://vault/linear/token'" search
+
+# Environment variable fallback
+export LINEAR_API_TOKEN=lin_api_xxx
+streamlinear-cli search
+```

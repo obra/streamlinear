@@ -20836,8 +20836,9 @@ var StdioServerTransport = class {
 
 // src/linear-core.ts
 var LINEAR_API = "https://api.linear.app/graphql";
+var apiToken = process.env.LINEAR_API_TOKEN;
 function getApiToken() {
-  return process.env.LINEAR_API_TOKEN;
+  return apiToken;
 }
 async function graphql(query, variables = {}) {
   const token = getApiToken();

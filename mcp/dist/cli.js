@@ -5,6 +5,9 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
+// src/cli.ts
+import { execSync } from "child_process";
+
 // node_modules/zod/v3/external.js
 var external_exports = {};
 __export(external_exports, {
@@ -4048,8 +4051,12 @@ var NEVER = INVALID;
 
 // src/linear-core.ts
 var LINEAR_API = "https://api.linear.app/graphql";
+var apiToken = process.env.LINEAR_API_TOKEN;
 function getApiToken() {
-  return process.env.LINEAR_API_TOKEN;
+  return apiToken;
+}
+function setApiToken(token) {
+  apiToken = token;
 }
 async function graphql(query, variables = {}) {
   const token = getApiToken();
@@ -4389,7 +4396,7 @@ function printHelp() {
   console.log(`streamlinear-cli - Linear issue management from the command line
 
 USAGE:
-  streamlinear-cli <command> [options]
+  streamlinear-cli [auth options] <command> [options]
 
 COMMANDS:
   search [query]           Search issues (default: your active issues)
@@ -4400,6 +4407,11 @@ COMMANDS:
   graphql <query>          Execute raw GraphQL
   teams                    List available teams and states
   help                     Show this help
+
+AUTHENTICATION (in order of precedence):
+  --token <token>          Use this API token directly
+  --token-cmd <command>    Run command to get token (stdout, trimmed)
+  LINEAR_API_TOKEN         Environment variable fallback
 
 SEARCH OPTIONS:
   --state <name>           Filter by state (e.g., "In Progress")
@@ -4421,21 +4433,19 @@ CREATE OPTIONS:
 EXAMPLES:
   streamlinear-cli search                          # Your active issues
   streamlinear-cli search "auth bug"               # Text search
-  streamlinear-cli search --state "In Progress"   # Filter by state
+  streamlinear-cli --token abc123 search           # With explicit token
+  streamlinear-cli --token-cmd "op read 'op://vault/linear/token'" search
   streamlinear-cli get ABC-123                     # Get issue details
   streamlinear-cli update ABC-123 --state Done     # Mark as done
   streamlinear-cli comment ABC-123 "Fixed it"      # Add comment
   streamlinear-cli create --team ENG --title "Bug" # Create issue
-
-ENVIRONMENT:
-  LINEAR_API_TOKEN         Required. Your Linear API token.
 `);
 }
 function parseArgs(args) {
-  const command = args[0] || "help";
   const positional = [];
   const flags = {};
-  for (let i = 1; i < args.length; i++) {
+  let command = null;
+  for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg.startsWith("--")) {
       const key = arg.slice(2);
@@ -4446,11 +4456,32 @@ function parseArgs(args) {
       } else {
         flags[key] = null;
       }
+    } else if (!command) {
+      command = arg;
     } else {
       positional.push(arg);
     }
   }
-  return { command, positional, flags };
+  return { command: command || "help", positional, flags };
+}
+function resolveToken(flags) {
+  if (flags.token) {
+    return flags.token;
+  }
+  if (flags["token-cmd"]) {
+    try {
+      const result = execSync(flags["token-cmd"], {
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"]
+      });
+      return result.trim();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Error running token command: ${message}`);
+      process.exit(1);
+    }
+  }
+  return process.env.LINEAR_API_TOKEN || null;
 }
 async function main() {
   const args = process.argv.slice(2);
@@ -4459,10 +4490,12 @@ async function main() {
     printHelp();
     return;
   }
-  if (!getApiToken()) {
-    console.error("Error: LINEAR_API_TOKEN environment variable is required");
+  const token = resolveToken(flags);
+  if (!token) {
+    console.error("Error: No API token provided. Use --token, --token-cmd, or set LINEAR_API_TOKEN");
     process.exit(1);
   }
+  setApiToken(token);
   try {
     let result;
     switch (command) {
