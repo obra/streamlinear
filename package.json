@@ -9,7 +9,8 @@
     "url": "https://github.com/obra/streamlinear.git"
   },
   "bin": {
-    "streamlinear": "mcp/dist/index.js"
+    "streamlinear": "mcp/dist/index.js",
+    "streamlinear-cli": "mcp/dist/cli.js"
   },
   "scripts": {
     "build": "cd mcp && npm install && npm run build",
@@ -17,7 +18,7 @@
     "prepare": "simple-git-hooks"
   },
   "simple-git-hooks": {
-    "pre-commit": "npm run build && git add mcp/dist/index.js"
+    "pre-commit": "npm run build && git add mcp/dist/index.js mcp/dist/cli.js"
   },
   "devDependencies": {
     "simple-git-hooks": "^2.11.1"

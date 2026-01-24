@@ -20834,19 +20834,21 @@ var StdioServerTransport = class {
   }
 };
 
-// src/index.ts
+// src/linear-core.ts
 var LINEAR_API = "https://api.linear.app/graphql";
-var API_TOKEN = process.env.LINEAR_API_TOKEN;
-if (!API_TOKEN) {
-  console.error("LINEAR_API_TOKEN environment variable is required");
-  process.exit(1);
+function getApiToken() {
+  return process.env.LINEAR_API_TOKEN;
 }
 async function graphql(query, variables = {}) {
+  const token = getApiToken();
+  if (!token) {
+    throw new Error("LINEAR_API_TOKEN environment variable is required");
+  }
   const response = await fetch(LINEAR_API, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: API_TOKEN
+      Authorization: token
     },
     body: JSON.stringify({ query, variables })
   });
@@ -21232,6 +21234,55 @@ ${teamLines.join("\n")}
 {"action": "create", "title": "Title", "team": "${teams[0]?.key || "KEY"}"}
 {"action": "help"} \u2192 full documentation`;
 }
+async function dispatchAction(params) {
+  switch (params.action) {
+    case "search":
+      return await handleSearch(params.query);
+    case "get":
+      if (!params.id)
+        throw new Error("id is required for get action");
+      return await handleGet(params.id);
+    case "update":
+      if (!params.id)
+        throw new Error("id is required for update action");
+      return await handleUpdate(params.id, {
+        state: params.state,
+        priority: params.priority,
+        assignee: params.assignee,
+        labels: params.labels
+      });
+    case "comment":
+      if (!params.id)
+        throw new Error("id is required for comment action");
+      if (!params.body)
+        throw new Error("body is required for comment action");
+      return await handleComment(params.id, params.body);
+    case "create":
+      if (!params.title)
+        throw new Error("title is required for create action");
+      if (!params.team)
+        throw new Error("team is required for create action");
+      return await handleCreate(params.title, params.team, {
+        body: params.body,
+        priority: params.priority,
+        labels: params.labels
+      });
+    case "graphql":
+      if (!params.graphql)
+        throw new Error("graphql query is required for graphql action");
+      return await handleGraphql(params.graphql, params.variables);
+    case "help":
+      return handleHelp();
+    default:
+      throw new Error(`Unknown action: ${params.action}`);
+  }
+}
+
+// src/index.ts
+if (!getApiToken()) {
+  console.error("LINEAR_API_TOKEN environment variable is required");
+  process.exit(1);
+}
 var server = new McpServer({
   name: "linear",
   version: "1.0.0"
@@ -21244,55 +21295,7 @@ server.tool(
   async (args) => {
     const params = LinearParams.parse(args);
     try {
-      let result;
-      switch (params.action) {
-        case "search":
-          result = await handleSearch(params.query);
-          break;
-        case "get":
-          if (!params.id)
-            throw new Error("id is required for get action");
-          result = await handleGet(params.id);
-          break;
-        case "update":
-          if (!params.id)
-            throw new Error("id is required for update action");
-          result = await handleUpdate(params.id, {
-            state: params.state,
-            priority: params.priority,
-            assignee: params.assignee,
-            labels: params.labels
-          });
-          break;
-        case "comment":
-          if (!params.id)
-            throw new Error("id is required for comment action");
-          if (!params.body)
-            throw new Error("body is required for comment action");
-          result = await handleComment(params.id, params.body);
-          break;
-        case "create":
-          if (!params.title)
-            throw new Error("title is required for create action");
-          if (!params.team)
-            throw new Error("team is required for create action");
-          result = await handleCreate(params.title, params.team, {
-            body: params.body,
-            priority: params.priority,
-            labels: params.labels
-          });
-          break;
-        case "graphql":
-          if (!params.graphql)
-            throw new Error("graphql query is required for graphql action");
-          result = await handleGraphql(params.graphql, params.variables);
-          break;
-        case "help":
-          result = handleHelp();
-          break;
-        default:
-          throw new Error(`Unknown action: ${params.action}`);
-      }
+      const result = await dispatchAction(params);
       return { content: [{ type: "text", text: result }] };
     } catch (error2) {
       const message = error2 instanceof Error ? error2.message : String(error2);
