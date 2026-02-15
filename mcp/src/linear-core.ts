@@ -16,7 +16,10 @@ export function setApiToken(token: string): void {
 }
 
 // GraphQL helper
-export async function graphql(query: string, variables: Record<string, unknown> = {}): Promise<unknown> {
+export async function graphql(
+  query: string,
+  variables: Record<string, unknown> = {}
+): Promise<unknown> {
   const token = getApiToken();
   if (!token) {
     throw new Error("LINEAR_API_TOKEN environment variable is required");
@@ -31,7 +34,7 @@ export async function graphql(query: string, variables: Record<string, unknown> 
     body: JSON.stringify({ query, variables }),
   });
 
-  const json = await response.json() as { data?: unknown; errors?: Array<{ message: string }> };
+  const json = (await response.json()) as { data?: unknown; errors?: Array<{ message: string }> };
 
   if (json.errors) {
     throw new Error(json.errors.map((e) => e.message).join("\n"));
@@ -75,12 +78,14 @@ export function priorityName(p: number): string {
 export function formatIssueList(issues: Array<Record<string, unknown>>): string {
   if (issues.length === 0) return "No issues found.";
 
-  return issues.map((issue) => {
-    const state = (issue.state as Record<string, unknown>)?.name || "?";
-    const priority = priorityName(issue.priority as number);
-    const assignee = (issue.assignee as Record<string, unknown>)?.name || "Unassigned";
-    return `- **${issue.identifier}** [${state}] ${issue.title} (${priority}, ${assignee})`;
-  }).join("\n");
+  return issues
+    .map((issue) => {
+      const state = (issue.state as Record<string, unknown>)?.name || "?";
+      const priority = priorityName(issue.priority as number);
+      const assignee = (issue.assignee as Record<string, unknown>)?.name || "Unassigned";
+      return `- **${issue.identifier}** [${state}] ${issue.title} (${priority}, ${assignee})`;
+    })
+    .join("\n");
 }
 
 // Cache for workflow states and team info
@@ -90,7 +95,9 @@ let cachedTeams: Array<Record<string, unknown>> | null = null;
 export async function getViewer(): Promise<Record<string, unknown>> {
   if (cachedViewer) return cachedViewer;
 
-  const data = await graphql(`query { viewer { id name email } }`) as { viewer: Record<string, unknown> };
+  const data = (await graphql(`query { viewer { id name email } }`)) as {
+    viewer: Record<string, unknown>;
+  };
   cachedViewer = data.viewer;
   return cachedViewer;
 }
@@ -98,7 +105,7 @@ export async function getViewer(): Promise<Record<string, unknown>> {
 export async function getTeams(): Promise<Array<Record<string, unknown>>> {
   if (cachedTeams) return cachedTeams;
 
-  const data = await graphql(`
+  const data = (await graphql(`
     query {
       teams {
         nodes {
@@ -109,10 +116,46 @@ export async function getTeams(): Promise<Array<Record<string, unknown>>> {
         }
       }
     }
-  `) as { teams: { nodes: Array<Record<string, unknown>> } };
+  `)) as { teams: { nodes: Array<Record<string, unknown>> } };
 
   cachedTeams = data.teams.nodes;
   return cachedTeams;
+}
+
+// Label resolution
+let cachedLabels: Array<{ id: string; name: string }> | null = null;
+
+export async function getWorkspaceLabels(): Promise<Array<{ id: string; name: string }>> {
+  if (cachedLabels) return cachedLabels;
+  const data = (await graphql(`
+    query { issueLabels(first: 250) { nodes { id name } } }
+  `)) as { issueLabels: { nodes: Array<{ id: string; name: string }> } };
+  cachedLabels = data.issueLabels.nodes;
+  return cachedLabels;
+}
+
+export async function resolveLabels(
+  names: string[]
+): Promise<{ ids: string[] } | { missing: string[] }> {
+  if (names.length === 0) return { ids: [] };
+
+  const resolve = (allLabels: Array<{ id: string; name: string }>) => {
+    const ids: string[] = [];
+    const missing: string[] = [];
+    for (const name of names) {
+      const match = allLabels.find((l) => l.name.toLowerCase() === name.toLowerCase());
+      if (match) ids.push(match.id);
+      else missing.push(name);
+    }
+    return missing.length > 0 ? { missing } : { ids };
+  };
+
+  const first = resolve(await getWorkspaceLabels());
+  if ("ids" in first) return first;
+
+  cachedLabels = null;
+  const second = resolve(await getWorkspaceLabels());
+  return second;
 }
 
 // Fuzzy match state name
@@ -134,10 +177,10 @@ export async function resolveState(teamId: string, stateName: string): Promise<s
 
   // Common aliases
   const aliases: Record<string, string[]> = {
-    "done": ["done", "complete", "completed", "finished"],
+    done: ["done", "complete", "completed", "finished"],
     "in progress": ["in progress", "started", "doing", "wip", "in prog"],
-    "todo": ["todo", "to do", "backlog", "open"],
-    "canceled": ["canceled", "cancelled", "closed", "wontfix"],
+    todo: ["todo", "to do", "backlog", "open"],
+    canceled: ["canceled", "cancelled", "closed", "wontfix"],
   };
 
   for (const [canonical, alts] of Object.entries(aliases)) {
@@ -155,10 +198,11 @@ export async function resolveTeam(input: string): Promise<Record<string, unknown
   const teams = await getTeams();
   const lower = input.toLowerCase();
 
-  return teams.find((t) =>
-    (t.key as string).toLowerCase() === lower ||
-    (t.name as string).toLowerCase() === lower
-  ) || null;
+  return (
+    teams.find(
+      (t) => (t.key as string).toLowerCase() === lower || (t.name as string).toLowerCase() === lower
+    ) || null
+  );
 }
 
 // Action handlers
@@ -172,7 +216,8 @@ export async function handleSearch(query?: string | Record<string, unknown>): Pr
     filter = `filter: { assignee: { id: { eq: "${viewer.id}" } }, state: { type: { nin: ["completed", "canceled"] } } }`;
   } else if (typeof query === "string") {
     // Text search
-    const data = await graphql(`
+    const data = (await graphql(
+      `
       query($term: String!) {
         searchIssues(term: $term, first: 20) {
           nodes {
@@ -180,7 +225,9 @@ export async function handleSearch(query?: string | Record<string, unknown>): Pr
           }
         }
       }
-    `, { term: query }) as { searchIssues: { nodes: Array<Record<string, unknown>> } };
+    `,
+      { term: query }
+    )) as { searchIssues: { nodes: Array<Record<string, unknown>> } };
 
     return formatIssueList(data.searchIssues.nodes);
   } else {
@@ -211,7 +258,7 @@ export async function handleSearch(query?: string | Record<string, unknown>): Pr
     }
   }
 
-  const data = await graphql(`
+  const data = (await graphql(`
     query {
       issues(${filter}, first: 20, orderBy: updatedAt) {
         nodes {
@@ -219,7 +266,7 @@ export async function handleSearch(query?: string | Record<string, unknown>): Pr
         }
       }
     }
-  `) as { issues: { nodes: Array<Record<string, unknown>> } };
+  `)) as { issues: { nodes: Array<Record<string, unknown>> } };
 
   return formatIssueList(data.issues.nodes);
 }
@@ -227,7 +274,8 @@ export async function handleSearch(query?: string | Record<string, unknown>): Pr
 export async function handleGet(id: string): Promise<string> {
   const resolved = resolveId(id);
 
-  const data = await graphql(`
+  const data = (await graphql(
+    `
     query($id: String!) {
       issue(id: $id) {
         id identifier title description state { name } priority
@@ -240,7 +288,9 @@ export async function handleGet(id: string): Promise<string> {
         }
       }
     }
-  `, { id: resolved }) as { issue: Record<string, unknown> | null };
+  `,
+    { id: resolved }
+  )) as { issue: Record<string, unknown> | null };
 
   if (!data.issue) {
     return `Issue ${id} not found`;
@@ -248,7 +298,8 @@ export async function handleGet(id: string): Promise<string> {
 
   const issue = data.issue;
   const labels = ((issue.labels as { nodes: Array<{ name: string }> })?.nodes || [])
-    .map((l) => l.name).join(", ");
+    .map((l) => l.name)
+    .join(", ");
 
   let result = formatIssue(issue);
 
@@ -257,9 +308,9 @@ export async function handleGet(id: string): Promise<string> {
   const comments = (issue.comments as { nodes: Array<Record<string, unknown>> })?.nodes || [];
   if (comments.length > 0) {
     result += "\n\n## Recent Comments\n";
-    result += comments.map((c) =>
-      `**${(c.user as Record<string, unknown>)?.name}** (${c.createdAt}):\n${c.body}`
-    ).join("\n\n");
+    result += comments
+      .map((c) => `**${(c.user as Record<string, unknown>)?.name}** (${c.createdAt}):\n${c.body}`)
+      .join("\n\n");
   }
 
   return result;
@@ -272,11 +323,14 @@ export async function handleUpdate(
   const resolved = resolveId(id);
 
   // First get the issue to find its team
-  const issueData = await graphql(`
+  const issueData = (await graphql(
+    `
     query($id: String!) {
       issue(id: $id) { id team { id } }
     }
-  `, { id: resolved }) as { issue: { id: string; team: { id: string } } | null };
+  `,
+    { id: resolved }
+  )) as { issue: { id: string; team: { id: string } } | null };
 
   if (!issueData.issue) {
     return `Issue ${id} not found`;
@@ -313,12 +367,12 @@ export async function handleUpdate(
       input.assigneeId = viewer.id;
     } else {
       // Look up by email
-      const userData = await graphql(`
+      const userData = (await graphql(`
         query { users { nodes { id email } } }
-      `) as { users: { nodes: Array<{ id: string; email: string }> } };
+      `)) as { users: { nodes: Array<{ id: string; email: string }> } };
 
-      const user = userData.users.nodes.find((u) =>
-        u.email.toLowerCase() === updates.assignee!.toLowerCase()
+      const user = userData.users.nodes.find(
+        (u) => u.email.toLowerCase() === updates.assignee!.toLowerCase()
       );
       if (user) {
         input.assigneeId = user.id;
@@ -328,25 +382,44 @@ export async function handleUpdate(
     }
   }
 
+  if (updates.labels !== undefined) {
+    const result = await resolveLabels(updates.labels);
+    if ("missing" in result) {
+      const allLabels = await getWorkspaceLabels();
+      return `Labels not found: ${result.missing.join(", ")}. Available: ${allLabels.map((l) => l.name).join(", ")}`;
+    }
+    input.labelIds = result.ids;
+  }
+
   if (Object.keys(input).length === 0) {
     return "No updates provided";
   }
 
-  const updateResult = await graphql(`
+  const updateResult = (await graphql(
+    `
     mutation($id: String!, $input: IssueUpdateInput!) {
       issueUpdate(id: $id, input: $input) {
         success
-        issue { identifier title state { name } priority assignee { name } }
+        issue { identifier title state { name } priority assignee { name } labels { nodes { name } } }
       }
     }
-  `, { id: issueData.issue.id, input }) as { issueUpdate: { issue: Record<string, unknown> } };
+  `,
+    { id: issueData.issue.id, input }
+  )) as { issueUpdate: { issue: Record<string, unknown> } };
 
   const issue = updateResult.issueUpdate.issue;
   const changes: string[] = [];
   if (updates.state) changes.push(`state → ${(issue.state as Record<string, unknown>)?.name}`);
-  if (updates.priority !== undefined) changes.push(`priority → ${priorityName(issue.priority as number)}`);
+  if (updates.priority !== undefined)
+    changes.push(`priority → ${priorityName(issue.priority as number)}`);
   if (updates.assignee !== undefined) {
     changes.push(`assignee → ${(issue.assignee as Record<string, unknown>)?.name || "Unassigned"}`);
+  }
+  if (updates.labels !== undefined) {
+    const labelNames = ((issue.labels as { nodes: Array<{ name: string }> })?.nodes || [])
+      .map((l) => l.name)
+      .join(", ");
+    changes.push(`labels → ${labelNames || "(none)"}`);
   }
 
   return `Updated ${issue.identifier}: ${changes.join(", ")}`;
@@ -356,23 +429,29 @@ export async function handleComment(id: string, body: string): Promise<string> {
   const resolved = resolveId(id);
 
   // Get issue ID
-  const issueData = await graphql(`
+  const issueData = (await graphql(
+    `
     query($id: String!) {
       issue(id: $id) { id identifier }
     }
-  `, { id: resolved }) as { issue: { id: string; identifier: string } | null };
+  `,
+    { id: resolved }
+  )) as { issue: { id: string; identifier: string } | null };
 
   if (!issueData.issue) {
     return `Issue ${id} not found`;
   }
 
-  await graphql(`
+  await graphql(
+    `
     mutation($issueId: String!, $body: String!) {
       commentCreate(input: { issueId: $issueId, body: $body }) {
         success
       }
     }
-  `, { issueId: issueData.issue.id, body });
+  `,
+    { issueId: issueData.issue.id, body }
+  );
 
   const truncated = body.length > 100 ? body.slice(0, 100) + "..." : body;
   return `Added comment to ${issueData.issue.identifier}:\n> ${truncated}`;
@@ -398,20 +477,37 @@ export async function handleCreate(
   if (options.body) input.description = options.body;
   if (options.priority !== undefined) input.priority = options.priority;
 
-  const data = await graphql(`
+  if (options.labels && options.labels.length > 0) {
+    const result = await resolveLabels(options.labels);
+    if ("missing" in result) {
+      const allLabels = await getWorkspaceLabels();
+      return `Labels not found: ${result.missing.join(", ")}. Available: ${allLabels.map((l) => l.name).join(", ")}`;
+    }
+    input.labelIds = result.ids;
+  }
+
+  const data = (await graphql(
+    `
     mutation($input: IssueCreateInput!) {
       issueCreate(input: $input) {
         success
         issue { identifier title url }
       }
     }
-  `, { input }) as { issueCreate: { success: boolean; issue: { identifier: string; title: string; url: string } } };
+  `,
+    { input }
+  )) as {
+    issueCreate: { success: boolean; issue: { identifier: string; title: string; url: string } };
+  };
 
   const issue = data.issueCreate.issue;
   return `Created ${issue.identifier}: ${issue.title}\n${issue.url}`;
 }
 
-export async function handleGraphql(query: string, variables?: Record<string, unknown>): Promise<string> {
+export async function handleGraphql(
+  query: string,
+  variables?: Record<string, unknown>
+): Promise<string> {
   const data = await graphql(query, variables || {});
   return JSON.stringify(data, null, 2);
 }
@@ -429,11 +525,13 @@ export function handleHelp(): string {
 **get** - Issue details (accepts ABC-123, URLs, or UUIDs)
   {"action": "get", "id": "ABC-123"}
 
-**update** - Change state, priority, assignee
+**update** - Change state, priority, assignee, labels
   {"action": "update", "id": "ABC-123", "state": "Done"}
   {"action": "update", "id": "ABC-123", "priority": 1}
   {"action": "update", "id": "ABC-123", "assignee": "me"}
   {"action": "update", "id": "ABC-123", "assignee": null}  → unassign
+  {"action": "update", "id": "ABC-123", "labels": ["bug", "urgent"]}  → replace all labels
+  {"action": "update", "id": "ABC-123", "labels": []}  → clear all labels
 
 **comment** - Add comment to issue
   {"action": "comment", "id": "ABC-123", "body": "Fixed in abc123"}
@@ -441,6 +539,7 @@ export function handleHelp(): string {
 **create** - Create new issue
   {"action": "create", "title": "Bug title", "team": "ENG"}
   {"action": "create", "title": "Bug", "team": "ENG", "body": "Details", "priority": 2}
+  {"action": "create", "title": "Bug", "team": "ENG", "labels": ["bug"]}
 
 **graphql** - Raw GraphQL for anything else
   {"action": "graphql", "graphql": "query { projects { nodes { id name } } }"}
@@ -454,6 +553,8 @@ Query filters: {assignee: "me"|email, state: "name", priority: 0-4, team: "KEY"}
 Search default: your issues, excluding completed/canceled
 
 State matching is fuzzy: "done" → "Done", "in prog" → "In Progress"
+
+Labels: exact match (case-insensitive). Array replaces all labels; [] clears them.
 
 IDs accept: ABC-123, linear.app URLs, or UUIDs`;
 }
@@ -482,10 +583,12 @@ export async function buildToolDescription(): Promise<string> {
 
   const teamLines = teams.map((team) => {
     const states = (team.states as { nodes: Array<Record<string, unknown>> }).nodes;
-    const stateNames = states.map((s) => {
-      const name = s.name as string;
-      return name.includes(",") ? `"${name}"` : name;
-    }).join(", ");
+    const stateNames = states
+      .map((s) => {
+        const name = s.name as string;
+        return name.includes(",") ? `"${name}"` : name;
+      })
+      .join(", ");
     return `  ${team.key}: ${stateNames}`;
   });
 
@@ -498,7 +601,8 @@ ${teamLines.join("\n")}
 {"action": "search", "query": "text"} → text search
 {"action": "get", "id": "ABC-123"} → issue details
 {"action": "update", "id": "ABC-123", "state": "Done"}
-{"action": "create", "title": "Title", "team": "${teams[0]?.key || 'KEY'}"}
+{"action": "update", "id": "ABC-123", "labels": ["bug"]} → replace labels
+{"action": "create", "title": "Title", "team": "${teams[0]?.key || "KEY"}", "labels": ["bug"]}
 {"action": "help"} → full documentation`;
 }
 
