@@ -36,6 +36,8 @@ Instead of 23 separate tools, streamlinear has **one tool with action dispatch**
 
 ## Installation
 
+### Single Workspace
+
 Add to your `.mcp.json`:
 
 ```json
@@ -54,7 +56,7 @@ Add to your `.mcp.json`:
 
 ### Multiple Workspaces
 
-To use streamlinear with multiple Linear workspaces (e.g., personal and work), configure separate MCP entries with different environment variables:
+To use streamlinear with multiple Linear workspaces (e.g., personal and work), create separate MCP entries and use variable substitution in the `env` field:
 
 ```json
 {
@@ -63,21 +65,28 @@ To use streamlinear with multiple Linear workspaces (e.g., personal and work), c
       "command": "npx",
       "args": ["-y", "github:obra/streamlinear"],
       "env": {
-        "LINEAR_API_TOKEN": "lin_api_xxxxx"
-      }
+        "LINEAR_API_TOKEN": "${LINEAR_PERSONAL_TOKEN}"
+      },
+      "envFrom": ["LINEAR_PERSONAL_TOKEN"]
     },
     "linear-work": {
       "command": "npx",
       "args": ["-y", "github:obra/streamlinear"],
       "env": {
-        "LINEAR_WORK_API_TOKEN": "lin_api_yyyyy"
-      }
+        "LINEAR_API_TOKEN": "${LINEAR_WORK_TOKEN}"
+      },
+      "envFrom": ["LINEAR_WORK_TOKEN"]
     }
   }
 }
 ```
 
-streamlinear will automatically detect any environment variable matching `LINEAR*_API_TOKEN` (e.g., `LINEAR_WORK_API_TOKEN`, `LINEAR_PERSONAL_API_TOKEN`, etc.). If multiple are present, `LINEAR_API_TOKEN` takes precedence.
+**How this works:**
+- `envFrom` loads your secrets/env vars (e.g., `LINEAR_WORK_TOKEN`) into the MCP process environment
+- `env` with `${VARIABLE}` substitution maps those values to `LINEAR_API_TOKEN` that streamlinear expects
+- Each MCP instance gets its own `LINEAR_API_TOKEN`, but with different values
+
+This pattern works with any MCP server config system that supports variable substitution (Claude Desktop, Claude Code, Sen, etc.).
 
 ## Smart Defaults
 

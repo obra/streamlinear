@@ -4050,18 +4050,7 @@ var NEVER = INVALID;
 
 // src/linear-core.ts
 var LINEAR_API = "https://api.linear.app/graphql";
-function getTokenFromEnv() {
-  if (process.env.LINEAR_API_TOKEN) {
-    return process.env.LINEAR_API_TOKEN;
-  }
-  for (const [key, value] of Object.entries(process.env)) {
-    if (key.endsWith("_API_TOKEN") && key.startsWith("LINEAR") && value) {
-      return value;
-    }
-  }
-  return void 0;
-}
-var apiToken = getTokenFromEnv();
+var apiToken = process.env.LINEAR_API_TOKEN;
 function getApiToken() {
   return apiToken;
 }
@@ -4071,7 +4060,7 @@ function setApiToken(token) {
 async function graphql(query, variables = {}) {
   const token = getApiToken();
   if (!token) {
-    throw new Error("Linear API token required (set LINEAR_API_TOKEN or any LINEAR*_API_TOKEN environment variable)");
+    throw new Error("LINEAR_API_TOKEN environment variable is required");
   }
   const response = await fetch(LINEAR_API, {
     method: "POST",
@@ -4403,7 +4392,7 @@ COMMANDS:
 AUTHENTICATION (in order of precedence):
   --token <token>          Use this API token directly
   --token-cmd <command>    Run command to get token (stdout, trimmed)
-  LINEAR*_API_TOKEN        Environment variable fallback (LINEAR_API_TOKEN, LINEAR_WORK_API_TOKEN, etc.)
+  LINEAR_API_TOKEN         Environment variable fallback
 
 SEARCH OPTIONS:
   --state <name>           Filter by state (e.g., "In Progress")
@@ -4473,15 +4462,7 @@ function resolveToken(flags) {
       process.exit(1);
     }
   }
-  if (process.env.LINEAR_API_TOKEN) {
-    return process.env.LINEAR_API_TOKEN;
-  }
-  for (const [key, value] of Object.entries(process.env)) {
-    if (key.endsWith("_API_TOKEN") && key.startsWith("LINEAR") && value) {
-      return value;
-    }
-  }
-  return null;
+  return process.env.LINEAR_API_TOKEN || null;
 }
 async function main() {
   const args = process.argv.slice(2);
@@ -4492,7 +4473,7 @@ async function main() {
   }
   const token = resolveToken(flags);
   if (!token) {
-    console.error("Error: No API token provided. Use --token, --token-cmd, or set LINEAR_API_TOKEN (or any LINEAR*_API_TOKEN)");
+    console.error("Error: No API token provided. Use --token, --token-cmd, or set LINEAR_API_TOKEN");
     process.exit(1);
   }
   setApiToken(token);

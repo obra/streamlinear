@@ -9,7 +9,7 @@ import {
 
 // Check for API token
 if (!getApiToken()) {
-  console.error("Linear API token required (set LINEAR_API_TOKEN or any LINEAR*_API_TOKEN environment variable)");
+  console.error("LINEAR_API_TOKEN environment variable is required");
   process.exit(1);
 }
 

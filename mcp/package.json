@@ -6,8 +6,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "npm run build:mcp && npm run build:cli",
-    "build:mcp": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist/index.js --external:fsevents",
-    "build:cli": "esbuild src/cli.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist/cli.js --external:fsevents",
+    "build:mcp": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist/index.js --external:fsevents --banner:js='#!/usr/bin/env node'",
+    "build:cli": "esbuild src/cli.ts --bundle --platform=node --target=node20 --format=esm --outfile=dist/cli.js --external:fsevents --banner:js='#!/usr/bin/env node'",
     "start": "node dist/index.js"
   },
   "dependencies": {
@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "esbuild": "^0.20.2",
+    "esbuild": "^0.20.0",
     "typescript": "^5.0.0"
   }
 }

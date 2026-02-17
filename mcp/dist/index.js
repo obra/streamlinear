@@ -20824,25 +20824,14 @@ var StdioServerTransport = class {
 
 // src/linear-core.ts
 var LINEAR_API = "https://api.linear.app/graphql";
-function getTokenFromEnv() {
-  if (process.env.LINEAR_API_TOKEN) {
-    return process.env.LINEAR_API_TOKEN;
-  }
-  for (const [key, value] of Object.entries(process.env)) {
-    if (key.endsWith("_API_TOKEN") && key.startsWith("LINEAR") && value) {
-      return value;
-    }
-  }
-  return void 0;
-}
-var apiToken = getTokenFromEnv();
+var apiToken = process.env.LINEAR_API_TOKEN;
 function getApiToken() {
   return apiToken;
 }
 async function graphql(query, variables = {}) {
   const token = getApiToken();
   if (!token) {
-    throw new Error("Linear API token required (set LINEAR_API_TOKEN or any LINEAR*_API_TOKEN environment variable)");
+    throw new Error("LINEAR_API_TOKEN environment variable is required");
   }
   const response = await fetch(LINEAR_API, {
     method: "POST",
@@ -21255,7 +21244,7 @@ async function dispatchAction(params) {
 
 // src/index.ts
 if (!getApiToken()) {
-  console.error("Linear API token required (set LINEAR_API_TOKEN or any LINEAR*_API_TOKEN environment variable)");
+  console.error("LINEAR_API_TOKEN environment variable is required");
   process.exit(1);
 }
 var server = new McpServer({

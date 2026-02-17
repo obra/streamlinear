@@ -3,24 +3,7 @@ import { z } from "zod";
 const LINEAR_API = "https://api.linear.app/graphql";
 
 // API token - can be set programmatically or from env
-// Supports LINEAR_API_TOKEN or any env var ending with _API_TOKEN for multi-workspace setups
-function getTokenFromEnv(): string | undefined {
-  // Check for standard LINEAR_API_TOKEN first
-  if (process.env.LINEAR_API_TOKEN) {
-    return process.env.LINEAR_API_TOKEN;
-  }
-
-  // Check for any env var ending with _API_TOKEN (e.g., LINEAR_WORK_API_TOKEN)
-  for (const [key, value] of Object.entries(process.env)) {
-    if (key.endsWith('_API_TOKEN') && key.startsWith('LINEAR') && value) {
-      return value;
-    }
-  }
-
-  return undefined;
-}
-
-let apiToken: string | undefined = getTokenFromEnv();
+let apiToken: string | undefined = process.env.LINEAR_API_TOKEN;
 
 // Get API token
 export function getApiToken(): string | undefined {
@@ -36,7 +19,7 @@ export function setApiToken(token: string): void {
 export async function graphql(query: string, variables: Record<string, unknown> = {}): Promise<unknown> {
   const token = getApiToken();
   if (!token) {
-    throw new Error("Linear API token required (set LINEAR_API_TOKEN or any LINEAR*_API_TOKEN environment variable)");
+    throw new Error("LINEAR_API_TOKEN environment variable is required");
   }
 
   const response = await fetch(LINEAR_API, {

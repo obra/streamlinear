@@ -30,7 +30,7 @@ COMMANDS:
 AUTHENTICATION (in order of precedence):
   --token <token>          Use this API token directly
   --token-cmd <command>    Run command to get token (stdout, trimmed)
-  LINEAR*_API_TOKEN        Environment variable fallback (LINEAR_API_TOKEN, LINEAR_WORK_API_TOKEN, etc.)
+  LINEAR_API_TOKEN         Environment variable fallback
 
 SEARCH OPTIONS:
   --state <name>           Filter by state (e.g., "In Progress")
@@ -111,19 +111,8 @@ function resolveToken(flags: Record<string, string | null>): string | null {
     }
   }
 
-  // 3. Environment variable (LINEAR_API_TOKEN or any LINEAR*_API_TOKEN)
-  if (process.env.LINEAR_API_TOKEN) {
-    return process.env.LINEAR_API_TOKEN;
-  }
-
-  // Check for any env var ending with _API_TOKEN (e.g., LINEAR_WORK_API_TOKEN)
-  for (const [key, value] of Object.entries(process.env)) {
-    if (key.endsWith('_API_TOKEN') && key.startsWith('LINEAR') && value) {
-      return value;
-    }
-  }
-
-  return null;
+  // 3. Environment variable
+  return process.env.LINEAR_API_TOKEN || null;
 }
 
 // Main CLI entry point
@@ -140,7 +129,7 @@ async function main(): Promise<void> {
   // Resolve and set API token
   const token = resolveToken(flags);
   if (!token) {
-    console.error("Error: No API token provided. Use --token, --token-cmd, or set LINEAR_API_TOKEN (or any LINEAR*_API_TOKEN)");
+    console.error("Error: No API token provided. Use --token, --token-cmd, or set LINEAR_API_TOKEN");
     process.exit(1);
   }
   setApiToken(token);
