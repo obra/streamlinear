@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 var __defProp = Object.defineProperty;
 var __export = (target, all) => {
   for (var name in all)
@@ -3836,7 +3835,7 @@ ZodNaN.create = (params) => {
     ...processCreateParams(params)
   });
 };
-var BRAND = Symbol("zod_brand");
+var BRAND = /* @__PURE__ */ Symbol("zod_brand");
 var ZodBranded = class extends ZodType {
   _parse(input) {
     const { ctx } = this._processInputParams(input);
@@ -4038,20 +4037,31 @@ var ostring = () => stringType().optional();
 var onumber = () => numberType().optional();
 var oboolean = () => booleanType().optional();
 var coerce = {
-  string: (arg) => ZodString.create({ ...arg, coerce: true }),
-  number: (arg) => ZodNumber.create({ ...arg, coerce: true }),
-  boolean: (arg) => ZodBoolean.create({
+  string: ((arg) => ZodString.create({ ...arg, coerce: true })),
+  number: ((arg) => ZodNumber.create({ ...arg, coerce: true })),
+  boolean: ((arg) => ZodBoolean.create({
     ...arg,
     coerce: true
-  }),
-  bigint: (arg) => ZodBigInt.create({ ...arg, coerce: true }),
-  date: (arg) => ZodDate.create({ ...arg, coerce: true })
+  })),
+  bigint: ((arg) => ZodBigInt.create({ ...arg, coerce: true })),
+  date: ((arg) => ZodDate.create({ ...arg, coerce: true }))
 };
 var NEVER = INVALID;
 
 // src/linear-core.ts
 var LINEAR_API = "https://api.linear.app/graphql";
-var apiToken = process.env.LINEAR_API_TOKEN;
+function getTokenFromEnv() {
+  if (process.env.LINEAR_API_TOKEN) {
+    return process.env.LINEAR_API_TOKEN;
+  }
+  for (const [key, value] of Object.entries(process.env)) {
+    if (key.endsWith("_API_TOKEN") && key.startsWith("LINEAR") && value) {
+      return value;
+    }
+  }
+  return void 0;
+}
+var apiToken = getTokenFromEnv();
 function getApiToken() {
   return apiToken;
 }
@@ -4061,7 +4071,7 @@ function setApiToken(token) {
 async function graphql(query, variables = {}) {
   const token = getApiToken();
   if (!token) {
-    throw new Error("LINEAR_API_TOKEN environment variable is required");
+    throw new Error("Linear API token required (set LINEAR_API_TOKEN or any LINEAR*_API_TOKEN environment variable)");
   }
   const response = await fetch(LINEAR_API, {
     method: "POST",
@@ -4079,10 +4089,8 @@ async function graphql(query, variables = {}) {
 }
 function resolveId(input) {
   const urlMatch = input.match(/linear\.app\/[^/]+\/issue\/([A-Z]+-\d+)/i);
-  if (urlMatch)
-    return urlMatch[1];
-  if (/^[A-Z]+-\d+$/i.test(input))
-    return input.toUpperCase();
+  if (urlMatch) return urlMatch[1];
+  if (/^[A-Z]+-\d+$/i.test(input)) return input.toUpperCase();
   return input;
 }
 function formatIssue(issue) {
@@ -4090,20 +4098,16 @@ function formatIssue(issue) {
     `**${issue.identifier}**: ${issue.title}`,
     `State: ${issue.state?.name || "Unknown"} | Priority: ${priorityName(issue.priority)} | Assignee: ${issue.assignee?.name || "Unassigned"}`
   ];
-  if (issue.dueDate)
-    lines.push(`Due: ${issue.dueDate}`);
-  if (issue.description)
-    lines.push("", issue.description);
-  if (issue.url)
-    lines.push("", `Link: ${issue.url}`);
+  if (issue.dueDate) lines.push(`Due: ${issue.dueDate}`);
+  if (issue.description) lines.push("", issue.description);
+  if (issue.url) lines.push("", `Link: ${issue.url}`);
   return lines.join("\n");
 }
 function priorityName(p) {
   return ["No priority", "Urgent", "High", "Medium", "Low"][p] || "Unknown";
 }
 function formatIssueList(issues) {
-  if (issues.length === 0)
-    return "No issues found.";
+  if (issues.length === 0) return "No issues found.";
   return issues.map((issue) => {
     const state = issue.state?.name || "?";
     const priority = priorityName(issue.priority);
@@ -4114,15 +4118,13 @@ function formatIssueList(issues) {
 var cachedViewer = null;
 var cachedTeams = null;
 async function getViewer() {
-  if (cachedViewer)
-    return cachedViewer;
+  if (cachedViewer) return cachedViewer;
   const data = await graphql(`query { viewer { id name email } }`);
   cachedViewer = data.viewer;
   return cachedViewer;
 }
 async function getTeams() {
-  if (cachedTeams)
-    return cachedTeams;
+  if (cachedTeams) return cachedTeams;
   const data = await graphql(`
     query {
       teams {
@@ -4141,16 +4143,13 @@ async function getTeams() {
 async function resolveState(teamId, stateName) {
   const teams = await getTeams();
   const team = teams.find((t) => t.id === teamId);
-  if (!team)
-    return null;
+  if (!team) return null;
   const states = team.states.nodes;
   const lower = stateName.toLowerCase();
   let match = states.find((s) => s.name.toLowerCase() === lower);
-  if (match)
-    return match.id;
+  if (match) return match.id;
   match = states.find((s) => s.name.toLowerCase().includes(lower));
-  if (match)
-    return match.id;
+  if (match) return match.id;
   const aliases = {
     "done": ["done", "complete", "completed", "finished"],
     "in progress": ["in progress", "started", "doing", "wip", "in prog"],
@@ -4160,8 +4159,7 @@ async function resolveState(teamId, stateName) {
   for (const [canonical, alts] of Object.entries(aliases)) {
     if (alts.includes(lower)) {
       match = states.find((s) => s.name.toLowerCase().includes(canonical));
-      if (match)
-        return match.id;
+      if (match) return match.id;
     }
   }
   return null;
@@ -4204,8 +4202,7 @@ async function handleSearch(query) {
     }
     if (query.team) {
       const team = await resolveTeam(query.team);
-      if (team)
-        filters.push(`team: { id: { eq: "${team.id}" } }`);
+      if (team) filters.push(`team: { id: { eq: "${team.id}" } }`);
     }
     if (filters.length > 0) {
       filter = `filter: { ${filters.join(", ")} }`;
@@ -4244,8 +4241,7 @@ async function handleGet(id) {
   const issue = data.issue;
   const labels = (issue.labels?.nodes || []).map((l) => l.name).join(", ");
   let result = formatIssue(issue);
-  if (labels)
-    result += `
+  if (labels) result += `
 Labels: ${labels}`;
   const comments = issue.comments?.nodes || [];
   if (comments.length > 0) {
@@ -4315,10 +4311,8 @@ async function handleUpdate(id, updates) {
   `, { id: issueData.issue.id, input });
   const issue = updateResult.issueUpdate.issue;
   const changes = [];
-  if (updates.state)
-    changes.push(`state \u2192 ${issue.state?.name}`);
-  if (updates.priority !== void 0)
-    changes.push(`priority \u2192 ${priorityName(issue.priority)}`);
+  if (updates.state) changes.push(`state \u2192 ${issue.state?.name}`);
+  if (updates.priority !== void 0) changes.push(`priority \u2192 ${priorityName(issue.priority)}`);
   if (updates.assignee !== void 0) {
     changes.push(`assignee \u2192 ${issue.assignee?.name || "Unassigned"}`);
   }
@@ -4356,10 +4350,8 @@ async function handleCreate(title, team, options) {
     title,
     teamId: teamData.id
   };
-  if (options.body)
-    input.description = options.body;
-  if (options.priority !== void 0)
-    input.priority = options.priority;
+  if (options.body) input.description = options.body;
+  if (options.priority !== void 0) input.priority = options.priority;
   const data = await graphql(`
     mutation($input: IssueCreateInput!) {
       issueCreate(input: $input) {
@@ -4411,7 +4403,7 @@ COMMANDS:
 AUTHENTICATION (in order of precedence):
   --token <token>          Use this API token directly
   --token-cmd <command>    Run command to get token (stdout, trimmed)
-  LINEAR_API_TOKEN         Environment variable fallback
+  LINEAR*_API_TOKEN        Environment variable fallback (LINEAR_API_TOKEN, LINEAR_WORK_API_TOKEN, etc.)
 
 SEARCH OPTIONS:
   --state <name>           Filter by state (e.g., "In Progress")
@@ -4481,7 +4473,15 @@ function resolveToken(flags) {
       process.exit(1);
     }
   }
-  return process.env.LINEAR_API_TOKEN || null;
+  if (process.env.LINEAR_API_TOKEN) {
+    return process.env.LINEAR_API_TOKEN;
+  }
+  for (const [key, value] of Object.entries(process.env)) {
+    if (key.endsWith("_API_TOKEN") && key.startsWith("LINEAR") && value) {
+      return value;
+    }
+  }
+  return null;
 }
 async function main() {
   const args = process.argv.slice(2);
@@ -4492,7 +4492,7 @@ async function main() {
   }
   const token = resolveToken(flags);
   if (!token) {
-    console.error("Error: No API token provided. Use --token, --token-cmd, or set LINEAR_API_TOKEN");
+    console.error("Error: No API token provided. Use --token, --token-cmd, or set LINEAR_API_TOKEN (or any LINEAR*_API_TOKEN)");
     process.exit(1);
   }
   setApiToken(token);
@@ -4504,14 +4504,10 @@ async function main() {
           result = await handleSearch(positional.join(" "));
         } else if (Object.keys(flags).length > 0) {
           const query = {};
-          if (flags.state)
-            query.state = flags.state;
-          if (flags.assignee)
-            query.assignee = flags.assignee;
-          if (flags.priority)
-            query.priority = parseInt(flags.priority, 10);
-          if (flags.team)
-            query.team = flags.team;
+          if (flags.state) query.state = flags.state;
+          if (flags.assignee) query.assignee = flags.assignee;
+          if (flags.priority) query.priority = parseInt(flags.priority, 10);
+          if (flags.team) query.team = flags.team;
           result = await handleSearch(query);
         } else {
           result = await handleSearch();
@@ -4536,10 +4532,8 @@ async function main() {
           process.exit(1);
         }
         const updates = {};
-        if (flags.state)
-          updates.state = flags.state;
-        if (flags.priority)
-          updates.priority = parseInt(flags.priority, 10);
+        if (flags.state) updates.state = flags.state;
+        if (flags.priority) updates.priority = parseInt(flags.priority, 10);
         if (flags.assignee !== void 0) {
           updates.assignee = flags.assignee === "null" ? null : flags.assignee;
         }
@@ -4571,10 +4565,8 @@ async function main() {
           process.exit(1);
         }
         const options = {};
-        if (flags.body)
-          options.body = flags.body;
-        if (flags.priority)
-          options.priority = parseInt(flags.priority, 10);
+        if (flags.body) options.body = flags.body;
+        if (flags.priority) options.priority = parseInt(flags.priority, 10);
         result = await handleCreate(title, team, options);
         break;
       }

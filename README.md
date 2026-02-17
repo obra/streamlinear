@@ -52,6 +52,33 @@ Add to your `.mcp.json`:
 }
 ```
 
+### Multiple Workspaces
+
+To use streamlinear with multiple Linear workspaces (e.g., personal and work), configure separate MCP entries with different environment variables:
+
+```json
+{
+  "mcpServers": {
+    "linear-personal": {
+      "command": "npx",
+      "args": ["-y", "github:obra/streamlinear"],
+      "env": {
+        "LINEAR_API_TOKEN": "lin_api_xxxxx"
+      }
+    },
+    "linear-work": {
+      "command": "npx",
+      "args": ["-y", "github:obra/streamlinear"],
+      "env": {
+        "LINEAR_WORK_API_TOKEN": "lin_api_yyyyy"
+      }
+    }
+  }
+}
+```
+
+streamlinear will automatically detect any environment variable matching `LINEAR*_API_TOKEN` (e.g., `LINEAR_WORK_API_TOKEN`, `LINEAR_PERSONAL_API_TOKEN`, etc.). If multiple are present, `LINEAR_API_TOKEN` takes precedence.
+
 ## Smart Defaults
 
 - Teams and workflow states shown in tool description (fetched at startup)
