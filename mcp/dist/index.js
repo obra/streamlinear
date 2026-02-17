@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -2041,38 +2040,28 @@ var require_fast_deep_equal = __commonJS({
   "node_modules/fast-deep-equal/index.js"(exports, module) {
     "use strict";
     module.exports = function equal(a, b) {
-      if (a === b)
-        return true;
+      if (a === b) return true;
       if (a && b && typeof a == "object" && typeof b == "object") {
-        if (a.constructor !== b.constructor)
-          return false;
+        if (a.constructor !== b.constructor) return false;
         var length, i, keys;
         if (Array.isArray(a)) {
           length = a.length;
-          if (length != b.length)
-            return false;
+          if (length != b.length) return false;
           for (i = length; i-- !== 0; )
-            if (!equal(a[i], b[i]))
-              return false;
+            if (!equal(a[i], b[i])) return false;
           return true;
         }
-        if (a.constructor === RegExp)
-          return a.source === b.source && a.flags === b.flags;
-        if (a.valueOf !== Object.prototype.valueOf)
-          return a.valueOf() === b.valueOf();
-        if (a.toString !== Object.prototype.toString)
-          return a.toString() === b.toString();
+        if (a.constructor === RegExp) return a.source === b.source && a.flags === b.flags;
+        if (a.valueOf !== Object.prototype.valueOf) return a.valueOf() === b.valueOf();
+        if (a.toString !== Object.prototype.toString) return a.toString() === b.toString();
         keys = Object.keys(a);
         length = keys.length;
-        if (length !== Object.keys(b).length)
-          return false;
+        if (length !== Object.keys(b).length) return false;
         for (i = length; i-- !== 0; )
-          if (!Object.prototype.hasOwnProperty.call(b, keys[i]))
-            return false;
+          if (!Object.prototype.hasOwnProperty.call(b, keys[i])) return false;
         for (i = length; i-- !== 0; ) {
           var key = keys[i];
-          if (!equal(a[key], b[key]))
-            return false;
+          if (!equal(a[key], b[key])) return false;
         }
         return true;
       }
@@ -3228,8 +3217,7 @@ var require_utils = __commonJS({
     function findToken(str, token) {
       let ind = 0;
       for (let i = 0; i < str.length; i++) {
-        if (str[i] === token)
-          ind++;
+        if (str[i] === token) ind++;
       }
       return ind;
     }
@@ -3687,8 +3675,7 @@ var require_fast_uri = __commonJS({
       const options = Object.assign({}, opts);
       const uriTokens = [];
       const schemeHandler = getSchemeHandler(options.scheme || component.scheme);
-      if (schemeHandler && schemeHandler.serialize)
-        schemeHandler.serialize(component, options);
+      if (schemeHandler && schemeHandler.serialize) schemeHandler.serialize(component, options);
       if (component.path !== void 0) {
         if (!options.skipEscape) {
           component.path = escape(component.path);
@@ -10629,7 +10616,7 @@ ZodNaN.create = (params) => {
     ...processCreateParams(params)
   });
 };
-var BRAND = Symbol("zod_brand");
+var BRAND = /* @__PURE__ */ Symbol("zod_brand");
 var ZodBranded = class extends ZodType {
   _parse(input) {
     const { ctx } = this._processInputParams(input);
@@ -10831,14 +10818,14 @@ var ostring = () => stringType().optional();
 var onumber = () => numberType().optional();
 var oboolean = () => booleanType().optional();
 var coerce = {
-  string: (arg) => ZodString.create({ ...arg, coerce: true }),
-  number: (arg) => ZodNumber.create({ ...arg, coerce: true }),
-  boolean: (arg) => ZodBoolean.create({
+  string: ((arg) => ZodString.create({ ...arg, coerce: true })),
+  number: ((arg) => ZodNumber.create({ ...arg, coerce: true })),
+  boolean: ((arg) => ZodBoolean.create({
     ...arg,
     coerce: true
-  }),
-  bigint: (arg) => ZodBigInt.create({ ...arg, coerce: true }),
-  date: (arg) => ZodDate.create({ ...arg, coerce: true })
+  })),
+  bigint: ((arg) => ZodBigInt.create({ ...arg, coerce: true })),
+  date: ((arg) => ZodDate.create({ ...arg, coerce: true }))
 };
 var NEVER = INVALID;
 
@@ -10889,7 +10876,6 @@ function $constructor(name, initializer3, params) {
   Object.defineProperty(_, "name", { value: name });
   return _;
 }
-var $brand = Symbol("zod_brand");
 var $ZodAsyncError = class extends Error {
   constructor() {
     super(`Encountered Promise during synchronous parse. Use .parseAsync() instead.`);
@@ -13393,8 +13379,6 @@ function en_default2() {
 }
 
 // node_modules/zod/v4/core/registries.js
-var $output = Symbol("ZodOutput");
-var $input = Symbol("ZodInput");
 var $ZodRegistry = class {
   constructor() {
     this._map = /* @__PURE__ */ new Map();
@@ -14319,6 +14303,7 @@ var JSONSchemaGenerator = class {
             _json.readOnly = true;
             break;
           }
+          // passthrough types
           case "promise": {
             this.process(def.innerType, params);
             result.ref = def.innerType;
@@ -14611,6 +14596,7 @@ function isTransforming(_schema, _ctx) {
     case "set": {
       return isTransforming(def.valueType, ctx);
     }
+    // inner types
     case "promise":
     case "optional":
     case "nonoptional":
@@ -14670,10 +14656,10 @@ var ZodMiniType = /* @__PURE__ */ $constructor("ZodMiniType", (inst, def) => {
   };
   inst.clone = (_def, params) => clone(inst, _def, params);
   inst.brand = () => inst;
-  inst.register = (reg, meta) => {
+  inst.register = ((reg, meta) => {
     reg.add(inst, meta);
     return inst;
-  };
+  });
 });
 var ZodMiniObject = /* @__PURE__ */ $constructor("ZodMiniObject", (inst, def) => {
   $ZodObject.init(inst, def);
@@ -14936,10 +14922,10 @@ var ZodType2 = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
   };
   inst.clone = (def2, params) => clone(inst, def2, params);
   inst.brand = () => inst;
-  inst.register = (reg, meta) => {
+  inst.register = ((reg, meta) => {
     reg.add(inst, meta);
     return inst;
-  };
+  });
   inst.parse = (data, params) => parse2(inst, data, params, { callee: inst.parse });
   inst.safeParse = (data, params) => safeParse3(inst, data, params);
   inst.parseAsync = async (data, params) => parseAsync2(inst, data, params, { callee: inst.parseAsync });
@@ -16896,11 +16882,13 @@ function assertCompleteRequestPrompt(request) {
   if (request.params.ref.type !== "ref/prompt") {
     throw new TypeError(`Expected CompleteRequestPrompt, but got ${request.params.ref.type}`);
   }
+  void request;
 }
 function assertCompleteRequestResourceTemplate(request) {
   if (request.params.ref.type !== "ref/resource") {
     throw new TypeError(`Expected CompleteRequestResourceTemplate, but got ${request.params.ref.type}`);
   }
+  void request;
 }
 var CompleteResultSchema = ResultSchema.extend({
   completion: looseObject({
@@ -17053,7 +17041,7 @@ function isTerminal(status) {
 }
 
 // node_modules/zod-to-json-schema/dist/esm/Options.js
-var ignoreOverride = Symbol("Let zodToJsonSchema decide on which parser to use");
+var ignoreOverride = /* @__PURE__ */ Symbol("Let zodToJsonSchema decide on which parser to use");
 var defaultOptions = {
   name: void 0,
   $refStrategy: "root",
@@ -19870,7 +19858,7 @@ var Server = class extends Protocol {
 };
 
 // node_modules/@modelcontextprotocol/sdk/dist/esm/server/completable.js
-var COMPLETABLE_SYMBOL = Symbol.for("mcp.completable");
+var COMPLETABLE_SYMBOL = /* @__PURE__ */ Symbol.for("mcp.completable");
 function isCompletable(schema) {
   return !!schema && typeof schema === "object" && COMPLETABLE_SYMBOL in schema;
 }
@@ -20836,14 +20824,25 @@ var StdioServerTransport = class {
 
 // src/linear-core.ts
 var LINEAR_API = "https://api.linear.app/graphql";
-var apiToken = process.env.LINEAR_API_TOKEN;
+function getTokenFromEnv() {
+  if (process.env.LINEAR_API_TOKEN) {
+    return process.env.LINEAR_API_TOKEN;
+  }
+  for (const [key, value] of Object.entries(process.env)) {
+    if (key.endsWith("_API_TOKEN") && key.startsWith("LINEAR") && value) {
+      return value;
+    }
+  }
+  return void 0;
+}
+var apiToken = getTokenFromEnv();
 function getApiToken() {
   return apiToken;
 }
 async function graphql(query, variables = {}) {
   const token = getApiToken();
   if (!token) {
-    throw new Error("LINEAR_API_TOKEN environment variable is required");
+    throw new Error("Linear API token required (set LINEAR_API_TOKEN or any LINEAR*_API_TOKEN environment variable)");
   }
   const response = await fetch(LINEAR_API, {
     method: "POST",
@@ -20861,10 +20860,8 @@ async function graphql(query, variables = {}) {
 }
 function resolveId(input) {
   const urlMatch = input.match(/linear\.app\/[^/]+\/issue\/([A-Z]+-\d+)/i);
-  if (urlMatch)
-    return urlMatch[1];
-  if (/^[A-Z]+-\d+$/i.test(input))
-    return input.toUpperCase();
+  if (urlMatch) return urlMatch[1];
+  if (/^[A-Z]+-\d+$/i.test(input)) return input.toUpperCase();
   return input;
 }
 function formatIssue(issue2) {
@@ -20872,20 +20869,16 @@ function formatIssue(issue2) {
     `**${issue2.identifier}**: ${issue2.title}`,
     `State: ${issue2.state?.name || "Unknown"} | Priority: ${priorityName(issue2.priority)} | Assignee: ${issue2.assignee?.name || "Unassigned"}`
   ];
-  if (issue2.dueDate)
-    lines.push(`Due: ${issue2.dueDate}`);
-  if (issue2.description)
-    lines.push("", issue2.description);
-  if (issue2.url)
-    lines.push("", `Link: ${issue2.url}`);
+  if (issue2.dueDate) lines.push(`Due: ${issue2.dueDate}`);
+  if (issue2.description) lines.push("", issue2.description);
+  if (issue2.url) lines.push("", `Link: ${issue2.url}`);
   return lines.join("\n");
 }
 function priorityName(p) {
   return ["No priority", "Urgent", "High", "Medium", "Low"][p] || "Unknown";
 }
 function formatIssueList(issues) {
-  if (issues.length === 0)
-    return "No issues found.";
+  if (issues.length === 0) return "No issues found.";
   return issues.map((issue2) => {
     const state = issue2.state?.name || "?";
     const priority = priorityName(issue2.priority);
@@ -20896,15 +20889,13 @@ function formatIssueList(issues) {
 var cachedViewer = null;
 var cachedTeams = null;
 async function getViewer() {
-  if (cachedViewer)
-    return cachedViewer;
+  if (cachedViewer) return cachedViewer;
   const data = await graphql(`query { viewer { id name email } }`);
   cachedViewer = data.viewer;
   return cachedViewer;
 }
 async function getTeams() {
-  if (cachedTeams)
-    return cachedTeams;
+  if (cachedTeams) return cachedTeams;
   const data = await graphql(`
     query {
       teams {
@@ -20923,16 +20914,13 @@ async function getTeams() {
 async function resolveState(teamId, stateName) {
   const teams = await getTeams();
   const team = teams.find((t) => t.id === teamId);
-  if (!team)
-    return null;
+  if (!team) return null;
   const states = team.states.nodes;
   const lower = stateName.toLowerCase();
   let match = states.find((s) => s.name.toLowerCase() === lower);
-  if (match)
-    return match.id;
+  if (match) return match.id;
   match = states.find((s) => s.name.toLowerCase().includes(lower));
-  if (match)
-    return match.id;
+  if (match) return match.id;
   const aliases = {
     "done": ["done", "complete", "completed", "finished"],
     "in progress": ["in progress", "started", "doing", "wip", "in prog"],
@@ -20942,8 +20930,7 @@ async function resolveState(teamId, stateName) {
   for (const [canonical, alts] of Object.entries(aliases)) {
     if (alts.includes(lower)) {
       match = states.find((s) => s.name.toLowerCase().includes(canonical));
-      if (match)
-        return match.id;
+      if (match) return match.id;
     }
   }
   return null;
@@ -20986,8 +20973,7 @@ async function handleSearch(query) {
     }
     if (query.team) {
       const team = await resolveTeam(query.team);
-      if (team)
-        filters.push(`team: { id: { eq: "${team.id}" } }`);
+      if (team) filters.push(`team: { id: { eq: "${team.id}" } }`);
     }
     if (filters.length > 0) {
       filter = `filter: { ${filters.join(", ")} }`;
@@ -21026,8 +21012,7 @@ async function handleGet(id) {
   const issue2 = data.issue;
   const labels = (issue2.labels?.nodes || []).map((l) => l.name).join(", ");
   let result = formatIssue(issue2);
-  if (labels)
-    result += `
+  if (labels) result += `
 Labels: ${labels}`;
   const comments = issue2.comments?.nodes || [];
   if (comments.length > 0) {
@@ -21097,10 +21082,8 @@ async function handleUpdate(id, updates) {
   `, { id: issueData.issue.id, input });
   const issue2 = updateResult.issueUpdate.issue;
   const changes = [];
-  if (updates.state)
-    changes.push(`state \u2192 ${issue2.state?.name}`);
-  if (updates.priority !== void 0)
-    changes.push(`priority \u2192 ${priorityName(issue2.priority)}`);
+  if (updates.state) changes.push(`state \u2192 ${issue2.state?.name}`);
+  if (updates.priority !== void 0) changes.push(`priority \u2192 ${priorityName(issue2.priority)}`);
   if (updates.assignee !== void 0) {
     changes.push(`assignee \u2192 ${issue2.assignee?.name || "Unassigned"}`);
   }
@@ -21138,10 +21121,8 @@ async function handleCreate(title, team, options) {
     title,
     teamId: teamData.id
   };
-  if (options.body)
-    input.description = options.body;
-  if (options.priority !== void 0)
-    input.priority = options.priority;
+  if (options.body) input.description = options.body;
+  if (options.priority !== void 0) input.priority = options.priority;
   const data = await graphql(`
     mutation($input: IssueCreateInput!) {
       issueCreate(input: $input) {
@@ -21240,12 +21221,10 @@ async function dispatchAction(params) {
     case "search":
       return await handleSearch(params.query);
     case "get":
-      if (!params.id)
-        throw new Error("id is required for get action");
+      if (!params.id) throw new Error("id is required for get action");
       return await handleGet(params.id);
     case "update":
-      if (!params.id)
-        throw new Error("id is required for update action");
+      if (!params.id) throw new Error("id is required for update action");
       return await handleUpdate(params.id, {
         state: params.state,
         priority: params.priority,
@@ -21253,24 +21232,19 @@ async function dispatchAction(params) {
         labels: params.labels
       });
     case "comment":
-      if (!params.id)
-        throw new Error("id is required for comment action");
-      if (!params.body)
-        throw new Error("body is required for comment action");
+      if (!params.id) throw new Error("id is required for comment action");
+      if (!params.body) throw new Error("body is required for comment action");
       return await handleComment(params.id, params.body);
     case "create":
-      if (!params.title)
-        throw new Error("title is required for create action");
-      if (!params.team)
-        throw new Error("team is required for create action");
+      if (!params.title) throw new Error("title is required for create action");
+      if (!params.team) throw new Error("team is required for create action");
       return await handleCreate(params.title, params.team, {
         body: params.body,
         priority: params.priority,
         labels: params.labels
       });
     case "graphql":
-      if (!params.graphql)
-        throw new Error("graphql query is required for graphql action");
+      if (!params.graphql) throw new Error("graphql query is required for graphql action");
       return await handleGraphql(params.graphql, params.variables);
     case "help":
       return handleHelp();
@@ -21281,7 +21255,7 @@ async function dispatchAction(params) {
 
 // src/index.ts
 if (!getApiToken()) {
-  console.error("LINEAR_API_TOKEN environment variable is required");
+  console.error("Linear API token required (set LINEAR_API_TOKEN or any LINEAR*_API_TOKEN environment variable)");
   process.exit(1);
 }
 var server = new McpServer({
